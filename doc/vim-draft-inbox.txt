@@ -1,0 +1,232 @@
+*vim-draft-inbox.txt*                         *vim-draft-inbox* *draft-inbox*
+
+==============================================================================
+CONTENTS                                           *vim-draft-inbox-contents*
+
+1. 概要.......................................|vim-draft-inbox-description|
+2. インストール...............................|vim-draft-inbox-installation|
+3. 基本的な使い方.............................|vim-draft-inbox-usage|
+4. コマンド...................................|vim-draft-inbox-commands|
+5. 設定.......................................|vim-draft-inbox-options|
+   5.1 Draft保存先............................|vim-draft-inbox-dir|
+   5.2 Inbox表示件数..........................|vim-draft-inbox-restore-limit|
+   5.3 Draft拡張子............................|vim-draft-inbox-extension|
+   5.4 AutoSave方式...........................|vim-draft-inbox-autosave|
+   5.5 AutoSaveイベント.......................|vim-draft-inbox-autosave-events|
+6. 外部AutoSaveとの併用.......................|vim-draft-inbox-external-autosave|
+7. 注意事項...................................|vim-draft-inbox-notes|
+8. ChatGPTによる生成について..................|vim-draft-inbox-chatgpt|
+
+==============================================================================
+概要                                            *vim-draft-inbox-description*
+
+vim-draft-inbox は、Vimをファイル名なしで起動したときの無名バッファを、
+複数のDraftとして保存・一覧・復元できるようにするVimプラグインです。
+
+Draftは後から通常ファイルとして保存したり、不要なら削除したりできます。
+
+Version 1.0.0 を初版とします。
+
+==============================================================================
+インストール                                  *vim-draft-inbox-installation*
+
+プラグイン本体:
+>
+    plugin/vim_draft_inbox.vim
+<
+
+Vim help:
+>
+    doc/vim-draft-inbox.txt
+<
+
+Windows:
+>
+    %USERPROFILE%\vimfiles\plugin\vim_draft_inbox.vim
+    %USERPROFILE%\vimfiles\doc\vim-draft-inbox.txt
+<
+
+macOS / Linux:
+>
+    ~/.vim/plugin/vim_draft_inbox.vim
+    ~/.vim/doc/vim-draft-inbox.txt
+<
+
+help tags:
+>
+    :helptags ~/vimfiles/doc
+<
+または:
+>
+    :helptags ~/.vim/doc
+<
+
+ヘルプ:
+>
+    :help vim-draft-inbox
+<
+
+==============================================================================
+基本的な使い方                                   *vim-draft-inbox-usage*
+
+ファイル名なしでVimを起動します。
+>
+    vim
+<
+
+Draftが存在する場合:
+>
+    Draft Inbox
+
+    [Enter] New Draft
+    q       Unnamed buffer / Cancel
+    1. 20261010-202154-14096.txt  [2026-10-10 20:34:59]
+    2. 20260926-132305-23340.txt  [2026-09-26 13:23:33]
+
+    Select:
+<
+
+空Enter:
+        新しいDraftを作成します。
+
+q:
+        起動時は通常の無名バッファのまま開始します。
+        :DraftInbox から呼び出した場合は選択をキャンセルします。
+
+数字:
+        対応するDraftを開きます。
+
+一覧表示のためだけに追加のEnterを押す必要はありません。
+
+Draftが1件も存在しない場合は新しいDraftを自動生成します。
+
+通常の:
+>
+    vim filename
+<
+はDraftモードになりません。
+
+==============================================================================
+コマンド                                          *vim-draft-inbox-commands*
+
+                                                        *:DraftInbox*
+:DraftInbox
+        Draft Inboxを表示します。選択したDraftは新しいタブで開きます。
+
+                                                        *:DraftNew*
+:DraftNew
+        新しいDraftを新しいタブで作成します。
+
+                                                        *:DraftRemove*
+:DraftRemove
+        現在のDraftを確認付きで削除します。
+        削除後はDraft Inboxへ戻ります。
+
+                                                        *:DraftWrite*
+:DraftWrite [filename]
+        filenameなしでは通常保存します。
+
+        Draft上でfilenameを指定すると :saveas と同様に動作し、保存成功後に
+        元Draftを削除します。
+
+Draft上では次の短縮操作も使用できます。
+>
+    :w
+    :w filename
+    :rm
+<
+
+==============================================================================
+設定                                                *vim-draft-inbox-options*
+
+                                                   *g:draft_inbox_dir*
+Draft保存先                                         *vim-draft-inbox-dir*
+>
+    let g:draft_inbox_dir = '~/.vimdrafts'
+<
+
+                                         *g:draft_inbox_restore_limit*
+Inbox表示件数                              *vim-draft-inbox-restore-limit*
+>
+    let g:draft_inbox_restore_limit = 20
+<
+
+                                             *g:draft_inbox_extension*
+Draft拡張子                                  *vim-draft-inbox-extension*
+>
+    let g:draft_inbox_extension = 'txt'
+<
+
+                                              *g:draft_inbox_autosave*
+AutoSave方式                                 *vim-draft-inbox-autosave*
+
+"builtin"
+        本プラグイン自身がDraftを自動保存します。デフォルトです。
+
+"external"
+        外部AutoSaveプラグインに保存を任せます。
+
+"none"
+        自動保存しません。
+
+例:
+>
+    let g:draft_inbox_autosave = 'external'
+<
+
+                                       *g:draft_inbox_autosave_events*
+AutoSaveイベント                       *vim-draft-inbox-autosave-events*
+
+builtinモードで使用するイベントです。
+>
+    let g:draft_inbox_autosave_events = [
+          \ 'InsertLeave',
+          \ 'TextChanged',
+          \ 'FocusLost',
+          \ 'BufLeave',
+          \ 'VimLeavePre',
+          \ ]
+<
+
+==============================================================================
+外部AutoSaveとの併用                    *vim-draft-inbox-external-autosave*
+
+既存のvim-auto-saveなどに保存処理を任せる場合:
+>
+    let g:draft_inbox_autosave = 'external'
+<
+
+例:
+>
+    let g:auto_save = 1
+    let g:auto_save_in_insert_mode = 0
+
+    let g:draft_inbox_autosave = 'external'
+<
+
+本プラグインは外部AutoSaveプラグイン固有の設定を変更しません。
+
+==============================================================================
+注意事項                                           *vim-draft-inbox-notes*
+
+このプラグインにはファイルの作成、保存、名前変更、削除処理が含まれます。
+
+:rm / :DraftRemove は確認後にDraftファイルを実際に削除します。
+
+コマンドラインの <CR> に既存mappingがある場合、本プラグインは上書き
+しません。その場合も :DraftWrite / :DraftRemove は使用できます。
+
+配布物には doc/tags を同梱しません。Vimの :helptags で、使用するdoc
+ディレクトリ全体の索引を生成してください。
+
+==============================================================================
+ChatGPTによる生成について                    *vim-draft-inbox-chatgpt*
+
+このプラグインおよびドキュメントはOpenAIのChatGPTを利用して生成・整理
+したものです。
+
+Vim本体や関連プラグインの公式提供物ではありません。利用前にコードを確認
+し、使用環境で十分にテストしてください。
+
+==============================================================================
+vim:tw=78:ts=8:noet:ft=help:norl:
